@@ -1,0 +1,59 @@
+---
+    - name: install pkgs
+      apt:
+        name: 
+        - python3-pip
+        - python3-pkg-resources
+        - python3-apt
+        - gunicorn3
+        - libpq-dev
+        state: present
+        update_cache: true
+
+    - name: get app
+      git:
+        repo: "{{application_repo}}"
+        dest: "{{application_path}}"
+
+    - name: install requirements
+      pip:
+        requirements: "{{application_path}}/requirements.txt"
+        executable: pip3
+
+    - name: migrate database
+      shell:
+        cmd: "flask db upgrade"
+        chdir: "{{application_path}}"
+      environment: 
+        POSTGRESQL_URL: "postgresql://{{pg_user}}:{{pg_passwd}}@localhost/app"
+      changed_when: false
+
+    - name: create service
+      include_role:
+        name: 0x0i.systemd
+      vars:
+        unit_config:
+        - name: "testapp"
+          Unit:
+            After: network-online.target
+            Wants: network-online.target
+          Service:
+            User: "nobody"
+            Group: "nogroup"
+            Environment: "POSTGRESQL_URL=postgresql://{{pg_user}}:{{pg_passwd}}@localhost/app"
+            WorkingDirectory: "{{application_path}}"
+            ExecStart: "/usr/bin/gunicorn3 --bind {{wsgi_entrypoint}} app:api"
+          Install:
+            WantedBy: "multi-user.target"
+
+    - name: start service
+      service:
+        name: testapp
+        state: started
+        enabled: true
+
+    - name: configure nginx
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-enabled/default
+      notify: restart nginx

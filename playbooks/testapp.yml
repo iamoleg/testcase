@@ -1,0 +1,13 @@
+---
+- name: testapp playbook
+  hosts: all
+  become: true
+
+  vars_files:
+    - "{{inventory_dir}}/play_vars/ansx.postgresql.yml"
+    - "{{inventory_dir}}/play_vars/myapp.yml"
+
+  roles:
+    - geerlingguy.nginx
+    - ANXS.postgresql
+    - ../roles/myapp

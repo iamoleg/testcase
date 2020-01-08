@@ -1,0 +1,4 @@
+---
+wsgi_entrypoint: "127.0.0.1:5000"
+application_path: "/opt/app"
+application_repo: "https://github.com/mbaran0v/python-sample-app.git"
